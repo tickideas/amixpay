@@ -1,0 +1,40 @@
+{
+  "name": "velocash-api",
+  "version": "1.0.0",
+  "description": "Velocash Fintech API",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "migrate": "npx knex migrate:latest --knexfile knexfile.js",
+    "seed": "npx knex seed:run --knexfile knexfile.js",
+    "migrate:rollback": "npx knex migrate:rollback --knexfile knexfile.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
+    "axios": "^1.13.6",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.3.1",
+    "express-validator": "^7.3.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "knex": "^3.1.0",
+    "morgan": "^1.10.1",
+    "nodemailer": "^8.0.4",
+    "pg": "^8.20.0",
+    "plaid": "^41.4.0",
+    "qrcode": "^1.5.4",
+    "rate-limit-redis": "^4.3.1",
+    "redis": "^5.11.0",
+    "speakeasy": "^2.0.0",
+    "stripe": "^20.4.1",
+    "uuid": "^9.0.1"
+  }
+}

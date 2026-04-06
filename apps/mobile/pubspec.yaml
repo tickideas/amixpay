@@ -1,0 +1,110 @@
+name: amixpay_app
+description: AmixPay — Global Digital Wallet & Money Transfer
+publish_to: 'none'
+version: 1.6.0+6
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Routing
+  go_router: ^15.1.2
+
+  # HTTP
+  dio: ^5.8.0+1
+  retrofit: ^4.4.1
+
+  # Secure storage
+  flutter_secure_storage: ^9.2.4
+
+  # QR Code
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.0.0
+
+  # Charts
+  fl_chart: ^0.71.0
+
+  # cached_network_image: ^3.4.1  # excluded for desktop/web builds
+
+  # UI
+  cupertino_icons: ^1.0.8
+  shimmer: ^3.0.0
+  lottie: ^3.3.1
+  pinput: ^5.0.1
+  country_picker: ^2.0.27
+  intl: ^0.20.2
+  timeago: ^3.7.0
+
+  image_picker: ^1.1.2
+
+  # Biometrics (Face ID / Touch ID / Fingerprint)
+  local_auth: ^2.3.0
+
+  # Firebase (Push Notifications)
+  firebase_core: ^3.13.0
+  firebase_messaging: ^15.2.4
+  flutter_local_notifications: ^18.0.1
+
+  # Plaid (Bank Linking)
+  plaid_flutter: ^5.1.1
+
+  # Stripe (Card Payments)
+  flutter_stripe: ^12.4.0
+
+  # Utils
+  uuid: ^4.5.1
+  share_plus: ^10.1.4
+  url_launcher: ^6.3.1
+
+  # PDF generation + printing
+  pdf: ^3.11.0
+  printing: ^5.13.2
+  flutter_svg: ^2.0.17
+
+  # Flutterwave (Mobile Money + Card payments, Africa)
+  flutterwave_standard: ^1.1.0
+
+  # Crash reporting
+  firebase_crashlytics: ^4.3.0
+
+  # Deep links (Flutterwave redirect + payment QR deep links)
+  app_links: ^6.4.0
+  permission_handler: ^12.0.1
+
+dependency_overrides:
+  # Pin to avoid objective_c 9.x native-asset hook failing on non-macOS builds
+  path_provider_foundation: 2.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.15
+  riverpod_generator: ^2.6.5
+  retrofit_generator: ^9.1.9
+  json_serializable: ^6.9.5
+  json_annotation: ^4.9.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#0D6B5E"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/

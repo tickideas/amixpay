@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AmixPAY logo foreground: bold "A" lettermark with small
+  currency-exchange arrows beneath — white on transparent.
+  Designed for 108dp adaptive icon canvas (safe zone = 72dp centred).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- ── "A" lettermark (centred, bold, white) ── -->
+    <!-- Left leg of A -->
+    <path
+        android:pathData="M54,22 L30,80 L38,80 L54,40 L70,80 L78,80 Z"
+        android:fillColor="#FFFFFF" />
+    <!-- Crossbar of A -->
+    <path
+        android:pathData="M40,62 L68,62 L66,55 L42,55 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- ── Currency exchange arrows (below A, white) ── -->
+    <!-- Arrow pointing right -->
+    <path
+        android:pathData="M36,88 L64,88 L64,85 L36,85 Z"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M62,82 L70,86.5 L62,91 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Arrow pointing left -->
+    <path
+        android:pathData="M44,94 L72,94 L72,97 L44,97 Z"
+        android:fillColor="#CCFFFFFF" />
+    <path
+        android:pathData="M46,91 L38,95.5 L46,100 Z"
+        android:fillColor="#CCFFFFFF" />
+
+</vector>
