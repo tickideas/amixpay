@@ -1,14 +1,21 @@
 {
-  "name": "velocash-api",
+  "name": "amixpay-api",
   "version": "1.0.0",
-  "description": "Velocash Fintech API",
+  "description": "AmixPay Fintech API",
   "main": "src/server.js",
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "test": "NODE_ENV=test jest --forceExit --detectOpenHandles",
+    "test:watch": "NODE_ENV=test jest --watch --forceExit --detectOpenHandles",
     "migrate": "npx knex migrate:latest --knexfile knexfile.js",
     "seed": "npx knex seed:run --knexfile knexfile.js",
     "migrate:rollback": "npx knex migrate:rollback --knexfile knexfile.js"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.js"],
+    "testTimeout": 15000
   },
   "keywords": [],
   "author": "",
@@ -36,5 +43,9 @@
     "speakeasy": "^2.0.0",
     "stripe": "^20.4.1",
     "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "supertest": "^7.2.2"
   }
 }
