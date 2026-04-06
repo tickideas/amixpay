@@ -63,3 +63,4 @@ redis_data/
 CODEBASE_ASSESSMENT.md
 amixpay-api/
 amixpay-app/
+apps/mobile/android/app/*.jks.old
