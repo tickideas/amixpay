@@ -19,7 +19,6 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-    container_name: amixpay-api
     restart: unless-stopped
     depends_on:
       amixpay-postgres:
@@ -74,15 +73,10 @@ services:
 
       # ── Firebase ──
       FIREBASE_SERVER_KEY: ${FIREBASE_SERVER_KEY:-}
-    networks:
-      - amixpay-net
-    labels:
-      - "traefik.enable=true"
 
   # ── PostgreSQL ──────────────────────────────────────────────────────────
   amixpay-postgres:
     image: postgres:15-alpine
-    container_name: amixpay-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: amixpay
@@ -96,13 +90,10 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
-    networks:
-      - amixpay-net
 
   # ── Redis ───────────────────────────────────────────────────────────────
   amixpay-redis:
     image: redis:7-alpine
-    container_name: amixpay-redis
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
     volumes:
@@ -113,8 +104,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
-    networks:
-      - amixpay-net
 
 volumes:
   postgres_data:
@@ -122,6 +111,3 @@ volumes:
   redis_data:
     driver: local
 
-networks:
-  amixpay-net:
-    driver: bridge
