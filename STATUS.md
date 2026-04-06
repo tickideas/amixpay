@@ -77,12 +77,21 @@ Two separate repos (`amixpay-api` and `amixpay-app`) handed over from the previo
 
 ---
 
+### 7. Dokploy Deployment Setup
+- Production `Dockerfile` — multi-stage build, non-root user, health checks
+- `docker-compose.prod.yml` — API + Postgres 15 + Redis 7, all env vars from Dokploy UI
+- SSL opt-in (`DB_SSL=true`) instead of forced — no overhead for internal Docker connections
+- `DEPLOY.md` — step-by-step Dokploy guide with env var reference, backup strategies, troubleshooting
+- Railway references removed from config defaults
+
+---
+
 ## 🔲 What's Left To Do
 
 ### High Priority
 
-- [ ] **Set Railway env vars** — `JWT_SECRET`, `ALLOWED_ORIGINS`, `STRIPE_SECRET_KEY` must be set now that we enforce them. Server will crash without `JWT_SECRET` in production.
-- [ ] **Run migration 013 + 014 on production DB** — the new indexes and tables need to be applied (`npx knex migrate:latest`)
+- [ ] **Set Dokploy env vars** — `JWT_SECRET`, `POSTGRES_PASSWORD`, `ALLOWED_ORIGINS` must be set. See `DEPLOY.md` for the full list. Server crashes without `JWT_SECRET`.
+- [ ] **Deploy to Dokploy** — follow `DEPLOY.md`. Migrations run automatically on startup.
 - [ ] **Sentry / monitoring** — no APM on either API or mobile app. Errors are invisible in production.
 - [ ] **Wire savings/scheduled/referral screens to their new repositories** — the Flutter repositories exist but the screens still use local state. Each screen needs its `build()` method updated to `ref.watch()` the new providers.
 - [ ] **Wire notifications screen to `notificationsProvider`** — repository exists, screen still shows empty state
@@ -112,6 +121,8 @@ Two separate repos (`amixpay-api` and `amixpay-app`) handed over from the previo
 ## Git History
 
 ```
+46cfa7e deploy: Dokploy setup — Dockerfile, production compose, deployment guide
+04e66e8 docs: add STATUS.md — session progress and remaining work
 0632884 feat: eliminate dead-end screens — add backend APIs + wire Flutter
 f752dbe perf: add 49 database indexes across all tables
 f8fd2f4 test: add CI pipeline + 40 API tests + Flutter model tests
