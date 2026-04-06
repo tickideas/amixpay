@@ -2,19 +2,13 @@
 # AmixPay Production — Dokploy Compose
 # ══════════════════════════════════════════════════════════════════════════════
 #
-# Dokploy will inject environment variables via its UI.
-# Set these in Dokploy → Compose → Environment:
+# Set these in Dokploy → Compose service → Environment tab (key=value):
 #
-#   JWT_SECRET          (required — generate with: openssl rand -hex 64)
-#   ALLOWED_ORIGINS     (e.g. https://amixpay.com,https://app.amixpay.com)
-#   POSTGRES_PASSWORD   (strong random password)
-#   STRIPE_SECRET_KEY   (from Stripe dashboard)
-#   SENDGRID_API_KEY    (for transactional email)
-#   TWILIO_ACCOUNT_SID  (for SMS OTP)
-#   TWILIO_AUTH_TOKEN
-#   TWILIO_PHONE_NUMBER
+#   JWT_SECRET=<64-byte-hex>         (required — openssl rand -hex 64)
+#   POSTGRES_PASSWORD=<strong-pw>    (required)
+#   ALLOWED_ORIGINS=https://...      (comma-separated, or empty to block all CORS)
 #
-# See apps/api/.env.example for the full list.
+# See apps/api/.env.example for the full list of optional vars.
 # ══════════════════════════════════════════════════════════════════════════════
 
 services:
@@ -34,49 +28,49 @@ services:
       NODE_ENV: production
       PORT: 3000
 
-      # Database — internal Docker network
+      # ── Database (internal Docker network) ──
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: amixpay
       DB_USER: postgres
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
 
-      # Redis — internal Docker network
+      # ── Redis (internal Docker network) ──
       REDIS_URL: redis://redis:6379
 
-      # Security (injected by Dokploy)
-      JWT_SECRET: ${JWT_SECRET}
+      # ── Security ──
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
       JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-30d}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
 
-      # App URLs
+      # ── App URLs ──
       APP_URL: ${APP_URL:-https://api.amixpay.com}
       FRONTEND_URL: ${FRONTEND_URL:-amixpay://reset-password}
 
-      # Stripe
+      # ── Stripe ──
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
 
-      # Flutterwave
+      # ── Flutterwave ──
       FLW_PUBLIC_KEY: ${FLW_PUBLIC_KEY:-}
       FLW_SECRET_KEY: ${FLW_SECRET_KEY:-}
       FLW_ENCRYPTION_KEY: ${FLW_ENCRYPTION_KEY:-}
       FLW_WEBHOOK_HASH: ${FLW_WEBHOOK_HASH:-}
 
-      # Email
+      # ── Email ──
       SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
       SENDGRID_FROM_EMAIL: ${SENDGRID_FROM_EMAIL:-noreply@amixpay.com}
 
-      # SMS
+      # ── SMS ──
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
       TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
 
-      # Exchange rates
+      # ── Exchange rates ──
       OPEN_EXCHANGE_RATES_KEY: ${OPEN_EXCHANGE_RATES_KEY:-}
 
-      # Firebase
+      # ── Firebase ──
       FIREBASE_SERVER_KEY: ${FIREBASE_SERVER_KEY:-}
     networks:
       - amixpay-net
@@ -91,7 +85,7 @@ services:
     environment:
       POSTGRES_DB: amixpay
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -102,7 +96,6 @@ services:
       start_period: 10s
     networks:
       - amixpay-net
-    # No ports exposed — only accessible within Docker network
 
   # ── Redis ───────────────────────────────────────────────────────────────
   redis:
@@ -120,7 +113,6 @@ services:
       start_period: 5s
     networks:
       - amixpay-net
-    # No ports exposed — only accessible within Docker network
 
 volumes:
   postgres_data:
