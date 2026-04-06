@@ -170,6 +170,131 @@ The current setup runs everything on one server. If you need to scale:
 
 ---
 
+## ⚠️ Critical Dokploy Compose Rules
+
+These were learned the hard way. **Do not deviate from these patterns** or Dokploy routing will silently break.
+
+### 1. Never define custom Docker networks
+
+```yaml
+# ❌ WRONG — isolates containers from Dokploy's Traefik proxy
+networks:
+  my-net:
+    driver: bridge
+
+services:
+  api:
+    networks:
+      - my-net
+```
+
+```yaml
+# ✅ CORRECT — let Dokploy manage networks
+services:
+  api:
+    # no networks key
+```
+
+Dokploy's Traefik runs on its own internal network (`dokploy-network`). If you define a custom bridge network, your containers are isolated from Traefik and **domain routing silently fails** — traffic falls through to another app or returns Traefik's default cert.
+
+### 2. Never set `container_name`
+
+```yaml
+# ❌ WRONG — conflicts with Dokploy's naming
+container_name: amixpay-api
+```
+
+```yaml
+# ✅ CORRECT — Dokploy manages container names
+services:
+  api:
+    # no container_name key
+```
+
+Dokploy generates unique container names. Hardcoding them causes conflicts on redeploy and breaks Dokploy's internal tracking.
+
+### 3. Never add Traefik labels manually
+
+```yaml
+# ❌ WRONG — conflicts with Dokploy's auto-generated Traefik config
+labels:
+  - "traefik.enable=true"
+```
+
+Dokploy generates all Traefik labels from the **Domains** UI. Manual labels conflict with or override Dokploy's routing rules.
+
+### 4. Use unique service names when running multiple stacks
+
+If you have multiple compose stacks on the same Dokploy server (e.g. `amixpay` + `echurcher`), avoid generic service names like `postgres` or `redis` that can collide via Docker DNS:
+
+```yaml
+# ✅ Namespaced to avoid cross-stack DNS collisions
+services:
+  amixpay-postgres:
+    image: postgres:15-alpine
+  amixpay-redis:
+    image: redis:7-alpine
+  api:
+    environment:
+      DB_HOST: amixpay-postgres
+      REDIS_URL: redis://amixpay-redis:6379
+```
+
+### 5. Use `127.0.0.1` not `localhost` in healthchecks
+
+Alpine-based images may resolve `localhost` to IPv6 (`::1`), but Node.js listens on IPv4 (`0.0.0.0`). This causes healthchecks to fail silently:
+
+```dockerfile
+# ❌ WRONG — may resolve to ::1 on Alpine
+HEALTHCHECK CMD wget -qO- http://localhost:3000/health || exit 1
+
+# ✅ CORRECT — explicit IPv4
+HEALTHCHECK CMD wget -qO- http://127.0.0.1:3000/health || exit 1
+```
+
+### 6. Postgres password is set at volume init only
+
+`POSTGRES_PASSWORD` is only used when the Postgres data volume is first created. Changing the env var later does **not** update the stored password. If you get `password authentication failed`:
+
+- **Option A (keep data):** `ALTER USER postgres WITH PASSWORD 'new_password';` inside the postgres container
+- **Option B (fresh start):** Delete the `postgres_data` volume and redeploy
+
+### Summary: minimal working Dokploy compose pattern
+
+```yaml
+name: myapp
+
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      myapp-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://user:${DB_PASSWORD}@myapp-db:5432/myapp
+
+  myapp-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+```
+
+No custom networks. No container names. No Traefik labels. Let Dokploy handle routing.
+
+---
+
 ## Migration from Railway
 
 If you're moving an existing Railway deployment:
