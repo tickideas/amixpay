@@ -26,6 +26,9 @@ const exchangeRateRoutes = require('./routes/exchangeRates');
 const zelleRoutes = require('./routes/zelle');
 const bankingRoutes = require('./routes/banking');
 const flutterwaveRoutes = require('./routes/flutterwave');
+const savingsRoutes = require('./routes/savings');
+const scheduledRoutes = require('./routes/scheduled');
+const referralRoutes = require('./routes/referrals');
 
 const isProduction = process.env.NODE_ENV === 'production';
 const app = express();
@@ -103,6 +106,9 @@ app.use('/v1/admin/fraud', adminFraudRoutes);
 app.use('/v1/zelle', zelleRoutes);
 app.use('/v1/banking', bankingRoutes);
 app.use('/v1/flutterwave', flutterwaveRoutes);
+app.use('/v1/savings', savingsRoutes);
+app.use('/v1/scheduled', scheduledRoutes);
+app.use('/v1/referrals', referralRoutes);
 
 // 404 handler
 app.use((req, res) => {

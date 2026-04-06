@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/exchange_rate_service.dart';
 import '../../../core/router/app_router.dart';
 import '../../../shared/providers/wallet_provider.dart';
 import '../../../shared/providers/auth_provider.dart';
@@ -789,16 +790,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   // ── Live Rate Widget (Wise-style) ─────────────
-  static const _rateRoutes = [
-    ('🇺🇸', 'USD', '🇬🇧', 'GBP', 0.7918),
-    ('🇺🇸', 'USD', '🇳🇬', 'NGN', 1615.0),
-    ('🇺🇸', 'USD', '🇪🇺', 'EUR', 0.9185),
-    ('🇺🇸', 'USD', '🇮🇳', 'INR', 83.45),
-    ('🇺🇸', 'USD', '🇰🇪', 'KES', 131.5),
-    ('🇺🇸', 'USD', '🇨🇦', 'CAD', 1.3623),
+  static const _ratePairs = [
+    ('🇺🇸', 'USD', '🇬🇧', 'GBP'),
+    ('🇺🇸', 'USD', '🇳🇬', 'NGN'),
+    ('🇺🇸', 'USD', '🇪🇺', 'EUR'),
+    ('🇺🇸', 'USD', '🇮🇳', 'INR'),
+    ('🇺🇸', 'USD', '🇰🇪', 'KES'),
+    ('🇺🇸', 'USD', '🇨🇦', 'CAD'),
   ];
 
   Widget _buildRateWidget() {
+    final ratesAsync = ref.watch(exchangeRatesProvider);
+    final rates = ratesAsync.valueOrNull;
+    final rateMap = rates?.rates ?? fallbackRates;
+    final isLive = rates?.isLive ?? false;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -830,7 +835,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     decoration: const BoxDecoration(color: Color(0xFF22C55E), shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 4),
-                  Text('Mid-market · just now', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  Text(isLive ? 'Mid-market · live' : 'Mid-market · cached', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
                 ],
               ),
             ],
@@ -840,7 +845,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             height: 56,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: _rateRoutes.length,
+              itemCount: _ratePairs.length,
               separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (_, i) {
                 final r = _rateRoutes[i];

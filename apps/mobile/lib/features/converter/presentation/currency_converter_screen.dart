@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/exchange_rate_service.dart';
 
-// ── Hardcoded live-ish rates (would be replaced by API call) ─────────────────
+// ── Fallback rates (used when API is unavailable) ────────────────────────────
 const Map<String, double> _usdRates = {
   'USD': 1.0,
   'EUR': 0.921,
@@ -94,9 +95,9 @@ const Map<String, String> _currencyNames = {
   'DKK': 'Danish Krone', 'NZD': 'New Zealand Dollar',
 };
 
-double _convert(double amount, String from, String to) {
-  final fromRate = _usdRates[from] ?? 1.0;
-  final toRate = _usdRates[to] ?? 1.0;
+double _convertWithRates(double amount, String from, String to, Map<String, double> rates) {
+  final fromRate = rates[from] ?? 1.0;
+  final toRate = rates[to] ?? 1.0;
   return amount / fromRate * toRate;
 }
 
@@ -113,13 +114,18 @@ class _CurrencyConverterScreenState extends ConsumerState<CurrencyConverterScree
   String _toCurrency = 'NGN';
   String _search = '';
 
-  double get _convertedAmount {
-    final input = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0;
-    return _convert(input, _fromCurrency, _toCurrency);
+  Map<String, double> get _rates {
+    final ratesAsync = ref.read(exchangeRatesProvider);
+    return ratesAsync.valueOrNull?.rates ?? fallbackRates;
   }
 
-  double get _rate => _convert(1, _fromCurrency, _toCurrency);
-  double get _reverseRate => _convert(1, _toCurrency, _fromCurrency);
+  double get _convertedAmount {
+    final input = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0;
+    return _convertWithRates(input, _fromCurrency, _toCurrency, _rates);
+  }
+
+  double get _rate => _convertWithRates(1, _fromCurrency, _toCurrency, _rates);
+  double get _reverseRate => _convertWithRates(1, _toCurrency, _fromCurrency, _rates);
 
   void _swap() {
     setState(() {
@@ -164,7 +170,11 @@ class _CurrencyConverterScreenState extends ConsumerState<CurrencyConverterScree
 
   @override
   Widget build(BuildContext context) {
-    final currencies = _usdRates.keys.toList()..sort();
+    // Use live rates when available, fallback to static
+    final ratesAsync = ref.watch(exchangeRatesProvider);
+    final liveRates = ratesAsync.valueOrNull;
+    final isLive = liveRates?.isLive ?? false;
+    final currencies = (liveRates?.rates ?? fallbackRates).keys.toList()..sort();
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -183,7 +193,7 @@ class _CurrencyConverterScreenState extends ConsumerState<CurrencyConverterScree
               color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text('Live Rates', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+            child: Text(isLive ? 'Live Rates' : 'Offline Rates', style: TextStyle(color: isLive ? AppColors.primary : Colors.orange, fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -491,7 +501,7 @@ class _CurrencyPickerSheetState extends State<_CurrencyPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final currencies = _usdRates.keys.where((c) => c != widget.exclude).toList()..sort();
+    final currencies = fallbackRates.keys.where((c) => c != widget.exclude).toList()..sort();
     final filtered = currencies.where((c) {
       final q = _search.toLowerCase();
       return c.toLowerCase().contains(q) || (_currencyNames[c] ?? '').toLowerCase().contains(q);

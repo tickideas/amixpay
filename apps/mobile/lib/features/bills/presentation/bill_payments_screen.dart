@@ -115,9 +115,42 @@ class _BillPaymentsScreenState extends State<BillPaymentsScreen> {
           style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
         ),
       ),
-      body: _selectedCategory == null ? _CategoryGrid() : _selectedProvider == null
-          ? _ProviderList(category: _selectedCategory!, onSelect: (p) => setState(() => _selectedProvider = p))
-          : _PaymentForm(category: _selectedCategory!, provider: _selectedProvider!),
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.construction_rounded, color: Colors.orange, size: 20),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Bill payments are coming soon. We\'re integrating with local providers.',
+                    style: TextStyle(color: Colors.orange.shade800, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.5,
+                child: _selectedCategory == null ? _CategoryGrid() : _selectedProvider == null
+                    ? _ProviderList(category: _selectedCategory!, onSelect: (p) => setState(() => _selectedProvider = p))
+                    : _PaymentForm(category: _selectedCategory!, provider: _selectedProvider!),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
