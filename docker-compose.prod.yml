@@ -20,23 +20,23 @@ services:
     container_name: amixpay-api
     restart: unless-stopped
     depends_on:
-      postgres:
+      amixpay-postgres:
         condition: service_healthy
-      redis:
+      amixpay-redis:
         condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3000
 
       # ── Database (internal Docker network) ──
-      DB_HOST: postgres
+      DB_HOST: amixpay-postgres
       DB_PORT: 5432
       DB_NAME: amixpay
       DB_USER: postgres
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
 
       # ── Redis (internal Docker network) ──
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://amixpay-redis:6379
 
       # ── Security ──
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
@@ -78,7 +78,7 @@ services:
       - "traefik.enable=true"
 
   # ── PostgreSQL ──────────────────────────────────────────────────────────
-  postgres:
+  amixpay-postgres:
     image: postgres:15-alpine
     container_name: amixpay-postgres
     restart: unless-stopped
@@ -98,7 +98,7 @@ services:
       - amixpay-net
 
   # ── Redis ───────────────────────────────────────────────────────────────
-  redis:
+  amixpay-redis:
     image: redis:7-alpine
     container_name: amixpay-redis
     restart: unless-stopped
