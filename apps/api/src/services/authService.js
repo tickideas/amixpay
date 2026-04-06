@@ -13,6 +13,54 @@ const ApiError = require('../utils/ApiError');
 const BCRYPT_ROUNDS = 12;
 const pendingTotpSecrets = new Map(); // temp storage for TOTP setup
 
+// ─── TOTP Secret Encryption ─────────────────────────────────────────────────
+// Uses AES-256-GCM with the JWT_SECRET-derived key. In a production setup with
+// KMS, replace this with envelope encryption via AWS KMS / GCP KMS / Vault.
+const TOTP_ENC_ALGO = 'aes-256-gcm';
+
+function _getTotpEncryptionKey() {
+  // Derive a 32-byte key from JWT_SECRET using SHA-256
+  return crypto.createHash('sha256').update(config.jwt.secret).digest();
+}
+
+function encryptSecret(plaintext) {
+  const key = _getTotpEncryptionKey();
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv(TOTP_ENC_ALGO, key, iv);
+  let encrypted = cipher.update(plaintext, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const tag = cipher.getAuthTag().toString('hex');
+  // Format: iv:tag:ciphertext
+  return `${iv.toString('hex')}:${tag}:${encrypted}`;
+}
+
+function decryptSecret(encrypted) {
+  const key = _getTotpEncryptionKey();
+  const [ivHex, tagHex, ciphertext] = encrypted.split(':');
+  if (!ivHex || !tagHex || !ciphertext) {
+    // Legacy unencrypted secret — return as-is (migration path)
+    return encrypted;
+  }
+  const decipher = crypto.createDecipheriv(TOTP_ENC_ALGO, key, Buffer.from(ivHex, 'hex'));
+  decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+  let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
+
+function encryptBackupCodes(codes) {
+  return encryptSecret(JSON.stringify(codes));
+}
+
+function decryptBackupCodes(encrypted) {
+  try {
+    return JSON.parse(decryptSecret(encrypted));
+  } catch {
+    // Legacy unencrypted JSON — parse directly
+    try { return JSON.parse(encrypted); } catch { return []; }
+  }
+}
+
 // ─── Password ────────────────────────────────────────────────────────────────
 
 function validatePasswordStrength(password) {
@@ -185,16 +233,20 @@ async function verifyAndActivateTotp(userId, code) {
   // Generate backup codes
   const backupCodes = Array.from({ length: 10 }, () => crypto.randomBytes(4).toString('hex').toUpperCase());
 
+  // Encrypt secrets before storing
+  const encryptedSecret = encryptSecret(secret);
+  const encryptedBackupCodes = encryptBackupCodes(backupCodes);
+
   await db('two_factor_auth')
     .insert({
       user_id: userId,
       method: 'totp',
-      secret_encrypted: secret, // In prod: encrypt with KMS
-      backup_codes_enc: JSON.stringify(backupCodes),
+      secret_encrypted: encryptedSecret,
+      backup_codes_enc: encryptedBackupCodes,
       enabled_at: new Date(),
     })
     .onConflict('user_id')
-    .merge({ secret_encrypted: secret, backup_codes_enc: JSON.stringify(backupCodes), enabled_at: new Date() });
+    .merge({ secret_encrypted: encryptedSecret, backup_codes_enc: encryptedBackupCodes, enabled_at: new Date() });
 
   await User.update(userId, { two_factor_on: true });
   pendingTotpSecrets.delete(userId);
@@ -215,16 +267,19 @@ async function verifyTotpChallenge(challengeToken, code) {
   const tfa = await db('two_factor_auth').where({ user_id: payload.sub }).first();
   if (!tfa) throw ApiError.badRequest('2FA not configured');
 
-  // Check backup code
-  const backupCodes = JSON.parse(tfa.backup_codes_enc || '[]');
+  // Decrypt backup codes
+  const backupCodes = decryptBackupCodes(tfa.backup_codes_enc || '[]');
   const isBackupCode = backupCodes.includes(code.toUpperCase());
 
   if (isBackupCode) {
     // Burn the backup code
     const remaining = backupCodes.filter((c) => c !== code.toUpperCase());
-    await db('two_factor_auth').where({ user_id: payload.sub }).update({ backup_codes_enc: JSON.stringify(remaining) });
+    const encryptedRemaining = encryptBackupCodes(remaining);
+    await db('two_factor_auth').where({ user_id: payload.sub }).update({ backup_codes_enc: encryptedRemaining });
   } else {
-    const valid = speakeasy.totp.verify({ secret: tfa.secret_encrypted, encoding: 'base32', token: code, window: 1 });
+    // Decrypt the TOTP secret for verification
+    const totpSecret = decryptSecret(tfa.secret_encrypted);
+    const valid = speakeasy.totp.verify({ secret: totpSecret, encoding: 'base32', token: code, window: 1 });
     if (!valid) throw ApiError.unauthorized('Invalid 2FA code');
   }
 

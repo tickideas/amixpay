@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const ApiError = require('../utils/ApiError');
 const User = require('../db/models/User');
+const config = require('../config');
 const { redisExists } = require('../redis/client');
 
 const authenticate = async (req, res, next) => {
@@ -18,7 +19,7 @@ const authenticate = async (req, res, next) => {
 
     let payload;
     try {
-      payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_change_in_production');
+      payload = jwt.verify(token, config.jwt.secret);
     } catch (err) {
       if (err.name === 'TokenExpiredError') throw ApiError.unauthorized('Token expired');
       throw ApiError.unauthorized('Invalid token');

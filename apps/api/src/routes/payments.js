@@ -2,6 +2,7 @@ const { Router } = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { authenticate } = require('../middleware/authenticate');
 const fraudCheck = require('../middleware/fraudCheck');
+const { validateAmount } = require('../middleware/validateAmount');
 const paymentService = require('../services/paymentService');
 const Payment = require('../db/models/Payment');
 const { success } = require('../utils/response');
@@ -25,6 +26,7 @@ router.post('/send',
     body('currencyCode').isLength({ min: 3, max: 3 }).toUpperCase(),
   ],
   validate,
+  validateAmount('amount'),
   async (req, res, next) => {
     try {
       const { recipient, amount, currencyCode, note } = req.body;

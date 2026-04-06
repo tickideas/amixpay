@@ -11,16 +11,20 @@ import 'core/services/deep_link_service.dart';
 import 'firebase_options.dart';
 import 'app.dart';
 
-const _stripePublishableKey = String.fromEnvironment(
-  'STRIPE_PK',
-  defaultValue: 'pk_test_51TAZ64L7INWPLV8q5D9Zw0fcXZx5Jv857470VsJWCIiXsH1XKGe50OnUUrL842Vq6PhnjXK5FnFnPqzN5utt6wOT00yf60dkjf',
-);
+// ── Stripe key must be provided via --dart-define=STRIPE_PK=pk_... ──────────
+// In debug mode an empty key is tolerated (Stripe features won't work).
+// In release mode the build MUST supply the key.
+const _stripePublishableKey = String.fromEnvironment('STRIPE_PK');
 
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // ── Stripe ──────────────────────────────────────────────────────────────
-  Stripe.publishableKey = _stripePublishableKey;
+  if (_stripePublishableKey.isNotEmpty) {
+    Stripe.publishableKey = _stripePublishableKey;
+  } else if (kDebugMode) {
+    debugPrint('[WARN] STRIPE_PK not set. Pass --dart-define=STRIPE_PK=pk_test_... to enable Stripe.');
+  }
 
   // Lock to portrait orientation for consistent experience
   await SystemChrome.setPreferredOrientations([

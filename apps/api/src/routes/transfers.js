@@ -2,6 +2,7 @@ const { Router } = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { authenticate } = require('../middleware/authenticate');
 const fraudCheck = require('../middleware/fraudCheck');
+const { validateAmount } = require('../middleware/validateAmount');
 const transferService = require('../services/transferService');
 const { success } = require('../utils/response');
 
@@ -22,6 +23,7 @@ router.post('/international/quote',
     body('sourceAmount').isFloat({ gt: 0 }),
   ],
   validate,
+  validateAmount('sourceAmount'),
   async (req, res, next) => {
     try {
       const quote = await transferService.createQuote({
@@ -45,6 +47,7 @@ router.post('/international',
     body('recipientDetails.name').notEmpty(),
   ],
   validate,
+  validateAmount('sourceAmount'),
   async (req, res, next) => {
     try {
       const { quoteId, sourceAmount, sourceCurrency, targetCurrency, targetAmount, rate, fee, recipientDetails } = req.body;

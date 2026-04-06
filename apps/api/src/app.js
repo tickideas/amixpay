@@ -27,6 +27,7 @@ const zelleRoutes = require('./routes/zelle');
 const bankingRoutes = require('./routes/banking');
 const flutterwaveRoutes = require('./routes/flutterwave');
 
+const isProduction = process.env.NODE_ENV === 'production';
 const app = express();
 
 // Security middleware
@@ -35,8 +36,20 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
+// ── CORS: explicit origins in production, permissive in dev ──────────────────
+const corsOrigin = (() => {
+  if (process.env.ALLOWED_ORIGINS) {
+    return process.env.ALLOWED_ORIGINS.split(',').map((s) => s.trim());
+  }
+  if (isProduction) {
+    console.warn('[SECURITY] ALLOWED_ORIGINS not set in production — CORS will reject all cross-origin requests.');
+    return false; // Reject all cross-origin requests
+  }
+  return true; // Reflect request origin in dev (equivalent to * but allows credentials)
+})();
+
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
+  origin: corsOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
@@ -48,7 +61,7 @@ app.use('/v1/stripe/webhooks', express.raw({ type: 'application/json' }));
 // General middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(morgan(isProduction ? 'combined' : 'dev'));
 app.use(requestId);
 app.use(generalLimiter);
 

@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../domain/auth_models.dart';
 
-// Demo user returned when no server is reachable
+// ── Demo mode ────────────────────────────────────────────────────────────────
+// Only available in debug builds. In release builds, network errors are
+// surfaced to the user — no fake sessions are ever created.
 const _demoAccessToken = 'demo_amixpay_token_v1';
 
 UserModel _buildDemoUser(String email, {String? firstName, String? lastName, String? phone, String? countryCode}) {
@@ -59,8 +62,9 @@ class AuthRepository {
       await SecureStorage.saveTokens(accessToken: tokens.accessToken, refreshToken: tokens.refreshToken);
       return (user: UserModel.fromJson(data['user'] as Map<String, dynamic>), tokens: tokens);
     } on DioException catch (e) {
-      if (_isNetworkError(e)) {
-        // Demo mode: server offline — create local session
+      // Demo mode — debug builds only
+      if (kDebugMode && _isNetworkError(e)) {
+        debugPrint('[AuthRepository] Server unreachable — entering demo mode (debug only)');
         const tokens = AuthTokens(accessToken: _demoAccessToken, refreshToken: _demoAccessToken, expiresIn: 604800);
         await SecureStorage.saveTokens(accessToken: _demoAccessToken, refreshToken: _demoAccessToken);
         final user = _buildDemoUser(email, firstName: firstName, lastName: lastName, phone: phone, countryCode: countryCode);
@@ -87,8 +91,9 @@ class AuthRepository {
       await SecureStorage.saveUserJson(jsonEncode(user.toJson()));
       return (user: user, tokens: tokens, requires2fa: false, challengeToken: null);
     } on DioException catch (e) {
-      if (_isNetworkError(e)) {
-        // Demo mode: accept any credentials when server is offline
+      // Demo mode — debug builds only
+      if (kDebugMode && _isNetworkError(e)) {
+        debugPrint('[AuthRepository] Server unreachable — entering demo mode (debug only)');
         const tokens = AuthTokens(accessToken: _demoAccessToken, refreshToken: _demoAccessToken, expiresIn: 604800);
         await SecureStorage.saveTokens(accessToken: _demoAccessToken, refreshToken: _demoAccessToken);
         final user = _buildDemoUser(email);
@@ -166,12 +171,13 @@ class AuthRepository {
       return user;
     } on DioException catch (e) {
       if (_isNetworkError(e)) {
-        // Demo mode: return saved user from last login
+        // Return cached user if available (works in both debug and release)
         final saved = await SecureStorage.getUserJson();
         if (saved != null) {
           try { return UserModel.fromJson(jsonDecode(saved) as Map<String, dynamic>); } catch (_) {}
         }
-        return _buildDemoUser('demo@amixpay.com');
+        // In debug mode, return demo user; in release, surface the error
+        if (kDebugMode) return _buildDemoUser('demo@amixpay.com');
       }
       throw ApiException.fromDio(e);
     }

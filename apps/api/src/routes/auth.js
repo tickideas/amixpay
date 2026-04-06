@@ -233,15 +233,50 @@ router.post('/resend-verification',
   }
 );
 
-// POST /v1/auth/verify-phone
-router.post('/verify-phone', authenticate, async (req, res, next) => {
-  try {
-    await User.update(req.user.id, { phone_verified: true, kyc_level: Math.max(req.user.kyc_level, 1) });
-    success(res, { message: 'Phone verified' });
-  } catch (err) {
-    next(err);
+// POST /v1/auth/send-phone-otp — send a verification code to the user's phone
+router.post('/send-phone-otp',
+  authLimiter,
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const user = req.user;
+      if (!user.phone) throw ApiError.badRequest('No phone number on file. Update your profile first.');
+      if (user.phone_verified) throw ApiError.badRequest('Phone is already verified.');
+
+      const otp = generateOtp();
+      await redisSet(`phone_otp:${user.id}`, otp, 600); // 10 min TTL
+
+      // TODO: Send OTP via Twilio SMS when TWILIO_ACCOUNT_SID is configured
+      // For now, log the code (visible in Railway logs for dev/staging)
+      console.log(`[Auth] Phone OTP for ${user.phone}: ${otp}`);
+
+      success(res, { message: 'Verification code sent to your phone number.' });
+    } catch (err) {
+      next(err);
+    }
   }
-});
+);
+
+// POST /v1/auth/verify-phone — verify phone with OTP code
+router.post('/verify-phone',
+  authenticate,
+  [body('code').notEmpty().isLength({ min: 6, max: 6 })],
+  validate,
+  async (req, res, next) => {
+    try {
+      const { code } = req.body;
+      const stored = await redisGet(`phone_otp:${req.user.id}`);
+      if (!stored || stored !== code) {
+        throw ApiError.badRequest('Invalid or expired verification code');
+      }
+      await User.update(req.user.id, { phone_verified: true, kyc_level: Math.max(req.user.kyc_level, 1) });
+      await redisDel(`phone_otp:${req.user.id}`);
+      success(res, { message: 'Phone verified successfully' });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 // POST /v1/auth/2fa/enable
 router.post('/2fa/enable', authenticate, async (req, res, next) => {
