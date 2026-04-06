@@ -45,7 +45,7 @@ module.exports = {
     smtpPass: process.env.SMTP_PASS || '',
   },
 
-  appUrl: process.env.APP_URL || 'https://amixpay-api-production.up.railway.app',
+  appUrl: process.env.APP_URL || 'https://api.amixpay.com',
   frontendUrl: process.env.FRONTEND_URL || 'amixpay://reset-password',
 
   stripe: {

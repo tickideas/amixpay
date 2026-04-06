@@ -1,15 +1,19 @@
 require('dotenv').config();
 
-// Railway injects DATABASE_URL automatically. Fall back to individual DB_* vars for local/Docker.
+// DATABASE_URL takes precedence (Railway, Heroku, etc.).
+// Fall back to individual DB_* vars for Docker/Dokploy.
+// Set DB_SSL=true if connecting to an external managed DB that requires SSL.
+const useSSL = process.env.DB_SSL === 'true';
+const sslConfig = useSSL ? { ssl: { rejectUnauthorized: false } } : {};
 const prodConnection = process.env.DATABASE_URL
-  ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
+  ? { connectionString: process.env.DATABASE_URL, ...sslConfig }
   : {
       host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
+      port: process.env.DB_PORT || 5432,
+      database: process.env.DB_NAME || 'amixpay',
+      user: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD,
-      ssl: { rejectUnauthorized: false },
+      ...sslConfig,
     };
 
 const devConnection = {
