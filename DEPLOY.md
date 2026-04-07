@@ -303,4 +303,3 @@ If you're moving an existing Railway deployment:
 2. **Copy env vars**: Railway dashboard → Dokploy environment tab
 3. **Update Flutter app**: change `API_BASE_URL` to your new Dokploy domain
 4. **Update Stripe webhooks**: point to new domain in Stripe dashboard
-5. **DNS**: update A/CNAME record to point to your Dokploy server IP
