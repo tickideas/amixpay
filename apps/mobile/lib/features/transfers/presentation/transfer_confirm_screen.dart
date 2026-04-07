@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/network/api_client.dart';
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -34,14 +35,20 @@ class _TransferConfirmScreenState
       return;
     }
     setState(() => _loading = true);
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
-    if (!mounted) return;
-    setState(() => _loading = false);
-    // Generate a mock transfer ID
-    final transferId =
-        'TXN${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-    context.go('/transfers/status/$transferId');
+    try {
+      final res = await ApiClient.instance.post('/transfers', data: widget.args);
+      if (!mounted) return;
+      setState(() => _loading = false);
+      final transferId = res.data['data']?['id'] ?? res.data['data']?['transfer_id'] ??
+          'TXN${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+      context.go('/transfers/status/$transferId');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Transfer failed: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override

@@ -632,7 +632,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _QuickAction(Icons.send_rounded, 'AmixPay', AppRoutes.zelleTransfer, AppColors.primary),
       _QuickAction(Icons.request_page_rounded, 'Request', AppRoutes.requestMoney, const Color(0xFF7C3AED)),
       _QuickAction(Icons.account_balance_wallet_rounded, 'Withdraw', AppRoutes.withdraw, const Color(0xFF0891B2)),
-      _QuickAction(Icons.group_rounded, 'Split', AppRoutes.splitBill, const Color(0xFFEA580C)),
+      _QuickAction(Icons.currency_exchange_rounded, 'Convert', AppRoutes.currencyConverter, const Color(0xFFEA580C)),
       _QuickAction(Icons.schedule_rounded, 'Schedule', AppRoutes.scheduledTransfers, const Color(0xFF0D6B5E)),
       _QuickAction(Icons.qr_code_scanner_rounded, 'Scan QR', AppRoutes.qrScanner, const Color(0xFFDB2777)),
     ];
@@ -928,7 +928,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _divider(),
           _TrustItem(Icons.lock_rounded, 'AES-256\nEncrypted', Colors.blue),
           _divider(),
-          _TrustItem(Icons.people_alt_rounded, '2M+\nTransfers', AppColors.primary),
+          _TrustItem(Icons.speed_rounded, 'Instant\nTransfers', AppColors.primary),
           _divider(),
           _TrustItem(Icons.currency_exchange_rounded, '0% Markup\nRate', Colors.orange),
         ],

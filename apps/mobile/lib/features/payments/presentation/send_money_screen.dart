@@ -4,23 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/locale_utils.dart';
 import '../../wallet/presentation/wallet_screen.dart' show walletCurrenciesProvider;
-
-// USD-base exchange rates (mid-market, same as wallet_screen)
-const _fxRates = <String, double>{
-  'USD': 1.0, 'USDT': 1.0, 'EUR': 1.08, 'GBP': 1.27, 'NGN': 0.00065,
-  'GHS': 0.067, 'KES': 0.0077, 'ZAR': 0.054, 'INR': 0.012,
-  'AED': 0.272, 'SAR': 0.267, 'CAD': 0.74, 'AUD': 0.65, 'CHF': 1.13,
-  'JPY': 0.0067, 'CNY': 0.138, 'SGD': 0.74, 'HKD': 0.128,
-  'MXN': 0.059, 'BRL': 0.20, 'TRY': 0.031, 'NZD': 0.60,
-  'KRW': 0.00075, 'PHP': 0.018, 'IDR': 0.000063, 'THB': 0.028,
-  'MYR': 0.21, 'VND': 0.000040, 'BDT': 0.0091, 'PKR': 0.0036,
-  'COP': 0.00025, 'PEN': 0.27, 'CLP': 0.0011, 'ARS': 0.0011,
-  'SEK': 0.096, 'NOK': 0.095, 'DKK': 0.145, 'PLN': 0.25,
-  'CZK': 0.044, 'HUF': 0.0028, 'RON': 0.22,
-  'XAF': 0.0016, 'XOF': 0.0016, 'ETB': 0.017, 'RWF': 0.00073,
-  'ZMW': 0.037, 'MAD': 0.098, 'EGP': 0.020, 'UGX': 0.00026,
-  'TZS': 0.00036,
-};
+import '../../../core/services/exchange_rate_service.dart';
 
 const _teal = Color(0xFF0D6B5E);
 const _bg = Color(0xFFF5F7FA);
@@ -87,10 +71,10 @@ class _SendMoneyScreenState extends ConsumerState<SendMoneyScreen> {
   }
 
   // When sending cross-currency: the amount to debit in the source wallet
-  double get _convertedDebitAmount {
+  double _convertedDebitAmountWith(Map<String, double> rates) {
     if (_convertFromCode == null) return _amount + _fee;
-    final fromRate = _fxRates[_convertFromCode!] ?? 1.0;
-    final toRate = _fxRates[_selectedCurrency] ?? 1.0;
+    final fromRate = rates[_convertFromCode!] ?? 1.0;
+    final toRate = rates[_selectedCurrency] ?? 1.0;
     if (fromRate == 0) return _amount + _fee;
     return (_amount + _fee) * (toRate / fromRate);
   }
@@ -114,7 +98,8 @@ class _SendMoneyScreenState extends ConsumerState<SendMoneyScreen> {
     if (!_canContinue) return;
     // When cross-currency: pass the source wallet info so confirm screen can debit it
     final effectiveCurrency = _convertFromCode ?? _selectedCurrency;
-    final effectiveAmount = _convertFromCode != null ? _convertedDebitAmount : _amount;
+    final rates = ref.read(exchangeRatesProvider).valueOrNull?.rates ?? fallbackRates;
+    final effectiveAmount = _convertFromCode != null ? _convertedDebitAmountWith(rates) : _amount;
     final effectiveFee = _convertFromCode != null ? 0.0 : _fee;
     context.push('/payments/confirm', extra: {
       'recipient': _selectedRecipientName.isNotEmpty ? _selectedRecipientName : _recipient,
@@ -387,7 +372,8 @@ class _SendMoneyScreenState extends ConsumerState<SendMoneyScreen> {
                 });
               }
               final fromSym = currencyToSymbol(fromCode);
-              final debit = _convertedDebitAmount;
+              final rates = ref.read(exchangeRatesProvider).valueOrNull?.rates ?? fallbackRates;
+              final debit = _convertedDebitAmountWith(rates);
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

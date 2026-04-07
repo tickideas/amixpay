@@ -7,6 +7,8 @@ import '../../../shared/providers/transaction_provider.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/locale_utils.dart';
 import '../../wallet/presentation/wallet_screen.dart' show walletCurrenciesProvider, WalletCurrency;
+import '../../../core/services/exchange_rate_service.dart';
+import '../data/payment_repository.dart';
 
 const _teal = Color(0xFF0D6B5E);
 const _bg = Color(0xFFF5F7FA);
@@ -35,29 +37,7 @@ class _ZelleTransferScreenState extends ConsumerState<ZelleTransferScreen>
   String _sendCurrency = 'USD'; // currency user enters amount in (recipient currency)
   double _amount = 0;
 
-  // Demo users
-  static const _demoNetworkUsers = [
-    _ResolvedRecipient(id: 'u1', username: '@alex.m', firstName: 'Alex', lastName: 'Mitchell', isVerified: true),
-    _ResolvedRecipient(id: 'u2', username: '@sarah.k', firstName: 'Sarah', lastName: 'Kim', isVerified: true),
-    _ResolvedRecipient(id: 'u3', username: '@demo.user', firstName: 'Demo', lastName: 'User', isVerified: false),
-  ];
 
-  // FX rates: 1 USD = X units of currency (mid-market)
-  static const _fxRates = <String, double>{
-    'USD': 1.0,    'USDT': 1.0,   'EUR': 0.924,  'GBP': 0.787,
-    'CAD': 1.352,  'AUD': 1.538,  'NZD': 1.667,  'CHF': 0.885,
-    'JPY': 149.5,  'CNY': 7.24,   'HKD': 7.82,   'SGD': 1.35,
-    'INR': 83.1,   'KRW': 1330.0, 'MXN': 17.1,   'BRL': 5.05,
-    'ARS': 890.0,  'CLP': 945.0,  'COP': 3900.0, 'PEN': 3.72,
-    'NGN': 1538.0, 'GHS': 14.9,   'KES': 129.5,  'ZAR': 18.5,
-    'UGX': 3750.0, 'TZS': 2540.0, 'ETB': 56.5,   'RWF': 1280.0,
-    'ZMW': 27.0,   'MAD': 10.0,   'EGP': 49.0,   'XAF': 606.0,
-    'XOF': 606.0,  'AED': 3.67,   'SAR': 3.75,   'QAR': 3.64,
-    'TRY': 32.0,   'ILS': 3.67,   'SEK': 10.4,   'NOK': 10.6,
-    'DKK': 6.9,    'PLN': 4.0,    'CZK': 22.8,   'HUF': 357.0,
-    'RON': 4.67,   'MYR': 4.72,   'THB': 35.1,   'PHP': 56.5,
-    'IDR': 15700.0,'VND': 24300.0,'BDT': 110.0,  'PKR': 278.0,
-  };
 
   // All global currencies for amount picker
   static const _globalCurrencies = [
@@ -70,10 +50,10 @@ class _ZelleTransferScreenState extends ConsumerState<ZelleTransferScreen>
   ];
 
   // Compute debit amount: how much of _currency wallet to deduct when sending _amount in _sendCurrency
-  double get _debitAmount {
+  double _debitAmountWith(Map<String, double> rates) {
     if (_sendCurrency == _currency) return _amount;
-    final sendRate = _fxRates[_sendCurrency] ?? 1.0;   // units of sendCurrency per 1 USD
-    final debitRate = _fxRates[_currency] ?? 1.0;      // units of _currency per 1 USD
+    final sendRate = rates[_sendCurrency] ?? 1.0;
+    final debitRate = rates[_currency] ?? 1.0;
     if (sendRate == 0) return _amount;
     return (_amount / sendRate) * debitRate;
   }
@@ -105,19 +85,32 @@ class _ZelleTransferScreenState extends ConsumerState<ZelleTransferScreen>
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
 
-    // Demo: match against known users
-    _ResolvedRecipient? found;
-    for (final u in _demoNetworkUsers) {
-      if (u.username.toLowerCase().contains(query.toLowerCase()) ||
-          query.toLowerCase().contains(u.firstName.toLowerCase())) {
-        found = u;
-        break;
+    // Search for real AmixPay users via API
+    try {
+      final results = await ref.read(paymentRepositoryProvider).searchUsers(query);
+      _ResolvedRecipient? found;
+      if (results.isNotEmpty) {
+        final u = results.first;
+        found = _ResolvedRecipient(
+          id: u['id'] ?? '',
+          username: '@${u['username'] ?? ''}',
+          firstName: u['first_name'] ?? u['firstName'] ?? '',
+          lastName: u['last_name'] ?? u['lastName'] ?? '',
+          isVerified: u['email_verified'] == true || u['emailVerified'] == true,
+        );
       }
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        _resolved = found;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        _resolved = null;
+      });
     }
-    setState(() {
-      _isSearching = false;
-      _resolved = found;
-    });
   }
 
   Future<void> _send() async {
@@ -130,7 +123,8 @@ class _ZelleTransferScreenState extends ConsumerState<ZelleTransferScreen>
     }
 
     // Compute how much to debit from wallet
-    final debit = _debitAmount;
+    final rates = ref.read(exchangeRatesProvider).valueOrNull?.rates ?? fallbackRates;
+    final debit = _debitAmountWith(rates);
     final walletCurrencies = ref.read(walletCurrenciesProvider);
     final walletBalance = walletCurrencies
         .firstWhere((w) => w.code == _currency, orElse: () => const WalletCurrency(flag: '', code: '', name: '', balance: 0, available: 0, symbol: ''))
@@ -413,7 +407,7 @@ class _ZelleTransferScreenState extends ConsumerState<ZelleTransferScreen>
                       const Icon(Icons.currency_exchange_rounded, size: 13, color: _teal),
                       const SizedBox(width: 4),
                       Text(
-                        '${CurrencyFormatter.symbolFor(_sendCurrency)}${_amount.toStringAsFixed(2)} $_sendCurrency  =  $debitSym${_debitAmount.toStringAsFixed(2)} $_currency deducted',
+                        '${CurrencyFormatter.symbolFor(_sendCurrency)}${_amount.toStringAsFixed(2)} $_sendCurrency  =  $debitSym${_debitAmountWith(ref.read(exchangeRatesProvider).valueOrNull?.rates ?? fallbackRates).toStringAsFixed(2)} $_currency deducted',
                         style: const TextStyle(fontSize: 12, color: _teal, fontWeight: FontWeight.w600),
                       ),
                     ]),

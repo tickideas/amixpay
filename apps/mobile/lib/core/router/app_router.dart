@@ -35,17 +35,11 @@ import '../../features/profile/presentation/avatar_upload_screen.dart';
 import '../../features/security/presentation/security_settings_screen.dart';
 import '../../features/security/presentation/change_password_screen.dart';
 import '../../features/security/presentation/two_factor_setup_screen.dart';
-import '../../features/merchants/presentation/merchant_dashboard_screen.dart';
-import '../../features/merchants/presentation/merchant_payments_screen.dart';
-import '../../features/merchants/presentation/checkout_link_screen.dart';
-import '../../features/splits/presentation/split_bill_screen.dart';
-import '../../features/splits/presentation/split_detail_screen.dart';
-import '../../features/admin/presentation/admin_dashboard_screen.dart';
-import '../../features/admin/presentation/fraud_alerts_screen.dart';
+
 import '../../features/converter/presentation/currency_converter_screen.dart';
 import '../../features/savings/presentation/savings_goals_screen.dart';
 import '../../features/analytics/presentation/spending_analytics_screen.dart';
-import '../../features/bills/presentation/bill_payments_screen.dart';
+
 import '../../features/referral/presentation/referral_screen.dart';
 import '../../features/scheduled/presentation/scheduled_transfers_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
@@ -53,10 +47,10 @@ import '../../features/wallet/presentation/transactions_hub_screen.dart';
 import '../../features/funding/presentation/add_funds_screen.dart';
 import '../../features/funding/presentation/withdraw_screen.dart';
 import '../../features/payments/presentation/zelle_transfer_screen.dart';
-import '../../features/banking/presentation/bank_connection_screen.dart';
+
 import '../../features/legal/presentation/privacy_policy_screen.dart';
 import '../../features/legal/presentation/terms_of_service_screen.dart';
-import '../../features/crypto/presentation/usdt_wallet_screen.dart';
+
 import '../../shared/widgets/main_scaffold.dart';
 
 class AppRoutes {
@@ -95,19 +89,13 @@ class AppRoutes {
   static const security = '/security';
   static const changePassword = '/security/password';
   static const twoFactorSetup = '/security/2fa';
-  static const merchantDashboard = '/merchant';
-  static const merchantPayments = '/merchant/payments';
-  static const checkoutLink = '/merchant/checkout';
-  static const splitBill = '/splits/new';
-  static const splitDetail = '/splits/:id';
-  static const adminDashboard = '/admin';
-  static const fraudAlerts = '/admin/fraud';
+
 
   // ── New world-class features ──────────────────────────────────────────────
   static const currencyConverter = '/converter';
   static const savingsGoals = '/savings';
   static const analytics = '/analytics';
-  static const billPayments = '/bills';
+
   static const referral = '/referral';
   static const scheduledTransfers = '/scheduled';
   static const transactions = '/transactions';
@@ -115,10 +103,10 @@ class AppRoutes {
   static const addFunds = '/funding/add';
   static const withdraw = '/funding/withdraw';
   static const zelleTransfer = '/payments/zelle';
-  static const bankConnection = '/banking/connect';
+
   static const privacyPolicy = '/legal/privacy';
   static const termsOfService = '/legal/terms';
-  static const usdtWallet = '/crypto/usdt';
+
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -192,37 +180,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.changePassword, builder: (_, __) => const ChangePasswordScreen()),
       GoRoute(path: AppRoutes.twoFactorSetup, builder: (_, __) => const TwoFactorSetupScreen()),
 
-      // Merchants
-      GoRoute(path: AppRoutes.merchantDashboard, builder: (_, __) => const MerchantDashboardScreen()),
-      GoRoute(path: AppRoutes.merchantPayments, builder: (_, __) => const MerchantPaymentsScreen()),
-      GoRoute(path: AppRoutes.checkoutLink, builder: (_, __) => const CheckoutLinkScreen()),
 
-      // Splits
-      GoRoute(path: AppRoutes.splitBill, builder: (_, __) => const SplitBillScreen()),
-      GoRoute(path: AppRoutes.splitDetail, builder: (c, s) => SplitDetailScreen(splitId: s.pathParameters['id']!)),
-
-      // Admin
-      GoRoute(path: AppRoutes.adminDashboard, builder: (_, __) => const AdminDashboardScreen()),
-      GoRoute(path: AppRoutes.fraudAlerts, builder: (_, __) => const FraudAlertsScreen()),
 
       // ── World-class new features ────────────────────────────────────────
       GoRoute(path: AppRoutes.currencyConverter, builder: (_, __) => const CurrencyConverterScreen()),
       GoRoute(path: AppRoutes.savingsGoals, builder: (_, __) => const SavingsGoalsScreen()),
       GoRoute(path: AppRoutes.analytics, builder: (_, __) => const SpendingAnalyticsScreen()),
-      GoRoute(path: AppRoutes.billPayments, builder: (_, __) => const BillPaymentsScreen()),
+
       GoRoute(path: AppRoutes.referral, builder: (_, __) => const ReferralScreen()),
       GoRoute(path: AppRoutes.scheduledTransfers, builder: (_, __) => const ScheduledTransfersScreen()),
       GoRoute(path: AppRoutes.addFunds, builder: (_, state) => AddFundsScreen(initialCurrency: state.extra as String?)),
       GoRoute(path: AppRoutes.withdraw, builder: (_, __) => const WithdrawScreen()),
       GoRoute(path: AppRoutes.zelleTransfer, builder: (_, state) => ZelleTransferScreen(initialCurrency: state.extra as String?)),
-      GoRoute(path: AppRoutes.bankConnection, builder: (_, __) => const BankConnectionScreen()),
+
 
       // Legal
       GoRoute(path: AppRoutes.privacyPolicy, builder: (_, __) => const PrivacyPolicyScreen()),
       GoRoute(path: AppRoutes.termsOfService, builder: (_, __) => const TermsOfServiceScreen()),
 
-      // Crypto / USDT
-      GoRoute(path: AppRoutes.usdtWallet, builder: (_, __) => const UsdtWalletScreen()),
+
     ],
   );
 });

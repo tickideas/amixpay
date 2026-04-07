@@ -454,13 +454,9 @@ class _InternationalTransferScreenState
     }
   }
 
-  String _generateNameFromSeed(String seed) {
-    const firsts = ['James','Maria','Alex','Fatima','David','Aisha','Samuel','Priya','Daniel','Yemi','Thomas','Amara','Noah','Chioma','Lucas'];
-    const lasts  = ['Johnson','Williams','Okonkwo','Sharma','Müller','Dubois','Santos','Nakamura','Petrov','Osei','Tremblay','Ali','Nkosi','Park','García'];
-    int h = 0;
-    for (final c in seed.codeUnits) { h = (h * 31 + c) & 0xFFFFFF; }
-    return '${firsts[h % firsts.length]} ${lasts[(h ~/ firsts.length) % lasts.length]}';
-  }
+  // Account name lookup is not yet supported — requires bank validation API
+  // For now, we skip name resolution and let the user confirm details manually
+  String? _generateNameFromSeed(String seed) => null;
 
   Future<void> _verifyRecipient() async {
     if (_verifying) return;

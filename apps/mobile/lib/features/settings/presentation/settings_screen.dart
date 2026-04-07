@@ -168,9 +168,6 @@ class SettingsScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
 
                     _SettingsGroup(title: 'Business', items: [
-                      _Item(Icons.store_outlined, 'Merchant Account', 'Accept payments', () => context.push(AppRoutes.merchantDashboard)),
-                      _Item(Icons.link_rounded, 'Payment Links', 'Shareable checkout links', () => context.push(AppRoutes.checkoutLink)),
-                      _Item(Icons.group_outlined, 'Split Bills', 'Share expenses', () => context.push(AppRoutes.splitBill)),
                       _Item(Icons.card_giftcard_rounded, 'Refer & Earn', 'Earn rewards per referral', () => context.push(AppRoutes.referral)),
                     ]),
                     const SizedBox(height: 16),

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:pinput/pinput.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_router.dart';
+import '../../../shared/providers/auth_provider.dart';
+import '../data/auth_repository.dart';
 
 class TwoFactorScreen extends ConsumerStatefulWidget {
   final String challengeToken;
@@ -58,12 +60,12 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen> {
     });
 
     try {
-      // TODO: Replace with real 2FA verification provider call
-      // await ref.read(authRepositoryProvider).verifyTwoFactor(
-      //   challengeToken: widget.challengeToken,
-      //   code: code,
-      // );
-      await Future.delayed(const Duration(milliseconds: 1200));
+      final result = await ref.read(authRepositoryProvider).verify2fa(
+        challengeToken: widget.challengeToken,
+        code: code,
+      );
+      // Sync user into auth state
+      ref.read(authProvider.notifier).setUser(result.user);
 
       if (!mounted) return;
       context.go(AppRoutes.home);

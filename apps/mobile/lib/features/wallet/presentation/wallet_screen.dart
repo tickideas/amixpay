@@ -7,19 +7,18 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/locale_utils.dart';
 import '../../../shared/providers/auth_provider.dart';
-import '../../crypto/presentation/usdt_wallet_screen.dart' show usdtBalanceProvider;
+import '../../../core/services/exchange_rate_service.dart';
 
 const _teal = Color(0xFF0D6B5E);
 const _bg = Color(0xFFF5F7FA);
 
-// ── Rates (USD base) ──────────────────────────────────────────────────────────
-const _usdRates = {
-  'USD': 1.0, 'USDT': 1.0, 'EUR': 1.08, 'GBP': 1.27, 'NGN': 0.00065,
-  'GHS': 0.067, 'KES': 0.0077, 'ZAR': 0.054, 'INR': 0.012,
-  'AED': 0.272, 'SAR': 0.267, 'CAD': 0.74, 'AUD': 0.65, 'CHF': 1.13,
-  'JPY': 0.0067, 'CNY': 0.138, 'SGD': 0.74, 'HKD': 0.128,
-  'MXN': 0.059, 'BRL': 0.20, 'TRY': 0.031,
-};
+// Rates are fetched live via exchangeRatesProvider; fallbackRates used as safety net.
+// _toUsd converts a currency amount to USD using the rate map (rates are USD-base,
+// so 1 USD = X units of currency → divide balance by rate to get USD value).
+double _toUsd(Map<String, double> rates, String code, double balance) {
+  final rate = rates[code] ?? 1.0;
+  return rate > 0 ? balance / rate : 0.0;
+}
 
 class WalletCurrency {
   final String flag;
@@ -179,13 +178,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
   @override
   Widget build(BuildContext context) {
     final currencies = ref.watch(walletCurrenciesProvider);
+    final ratesAsync = ref.watch(exchangeRatesProvider);
+    final rates = ratesAsync.valueOrNull?.rates ?? fallbackRates;
     final totalUSD = currencies.fold<double>(
-        0, (sum, c) => sum + c.balance * (_usdRates[c.code] ?? 1.0));
+        0, (sum, c) => sum + _toUsd(rates, c.code, c.balance));
     // Show total in primary wallet currency, not hardcoded USD
     final primaryCode = currencies.isNotEmpty ? currencies.first.code : 'USD';
     final primarySymbol = currencies.isNotEmpty ? currencies.first.symbol : r'$';
-    final primaryUsdRate = _usdRates[primaryCode] ?? 1.0;
-    final totalInPrimary = primaryUsdRate > 0 ? totalUSD / primaryUsdRate : totalUSD;
+    final primaryRate = rates[primaryCode] ?? 1.0;
+    final totalInPrimary = totalUSD * primaryRate;
 
     final authAsync = ref.watch(authProvider);
     final user = authAsync.valueOrNull?.user;
@@ -326,7 +327,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                 // ── Portfolio allocation strip ───────────────────────────
                 if (currencies.length > 1)
                   SliverToBoxAdapter(
-                    child: _PortfolioBar(currencies: currencies, totalUSD: totalUSD),
+                    child: _PortfolioBar(currencies: currencies, totalUSD: totalUSD, rates: rates),
                   ),
 
                 // ── Trust badge strip ────────────────────────────────────
@@ -389,13 +390,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen>
                   ),
                 ),
 
-                // ── USDT / Crypto wallet card ────────────────────────────
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                    child: _UsdtCard(),
-                  ),
-                ),
 
                 // ── "Zero fees to Africa" banner ─────────────────────────
                 const SliverToBoxAdapter(
@@ -571,7 +565,8 @@ class _WalletQuickBtn extends StatelessWidget {
 class _PortfolioBar extends StatelessWidget {
   final List<WalletCurrency> currencies;
   final double totalUSD;
-  const _PortfolioBar({required this.currencies, required this.totalUSD});
+  final Map<String, double> rates;
+  const _PortfolioBar({required this.currencies, required this.totalUSD, required this.rates});
 
   static const _barColors = [
     Color(0xFF0D6B5E), Color(0xFF0284C7), Color(0xFF7C3AED),
@@ -601,7 +596,7 @@ class _PortfolioBar extends StatelessWidget {
             child: Row(
               children: currencies.asMap().entries.map((entry) {
                 final c = entry.value;
-                final pct = c.balance * (_usdRates[c.code] ?? 1.0) / totalUSD;
+                final pct = _toUsd(rates, c.code, c.balance) / totalUSD;
                 final colorIdx = (c.colorIndex ?? entry.key) % _barColors.length;
                 return Flexible(
                   flex: (pct * 1000).round().clamp(1, 1000),
@@ -617,7 +612,7 @@ class _PortfolioBar extends StatelessWidget {
             children: currencies.asMap().entries.map((entry) {
               final c = entry.value;
               final pct = totalUSD > 0
-                  ? (c.balance * (_usdRates[c.code] ?? 1.0) / totalUSD * 100)
+                  ? (_toUsd(rates, c.code, c.balance) / totalUSD * 100)
                   : 0.0;
               final colorIdx = (c.colorIndex ?? entry.key) % _barColors.length;
               return Row(mainAxisSize: MainAxisSize.min, children: [
@@ -690,73 +685,7 @@ class _AfricaBanner extends StatelessWidget {
   );
 }
 
-// ── USDT Card ────────────────────────────────────────────────────────────────
 
-class _UsdtCard extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final usdtBalance = ref.watch(usdtBalanceProvider);
-    return GestureDetector(
-      onTap: () => context.push(AppRoutes.usdtWallet),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF10B981), Color(0xFF0D9488)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: const Color(0xFF10B981).withValues(alpha: 0.25),
-                blurRadius: 12,
-                offset: const Offset(0, 4))
-          ],
-        ),
-        child: Row(children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Center(
-              child: Text('💲', style: TextStyle(fontSize: 22)),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('USDT Wallet',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14)),
-              Text('\$${usdtBalance.toStringAsFixed(2)} USDT',
-                  style: const TextStyle(
-                      color: Colors.white70, fontSize: 12)),
-            ]),
-          ),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text('Open',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600)),
-          ),
-        ]),
-      ),
-    );
-  }
-}
 
 // ── Virtual Card Widget ───────────────────────────────────────────────────────
 
@@ -795,7 +724,7 @@ class _VirtualCard extends StatelessWidget {
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('CARD NUMBER', style: TextStyle(color: Colors.white54, fontSize: 9)),
             const SizedBox(height: 2),
-            const Text('•••• •••• •••• 9982', style: TextStyle(color: Colors.white, fontSize: 14, letterSpacing: 1.5)),
+            const Text('•••• •••• •••• ••••', style: TextStyle(color: Colors.white, fontSize: 14, letterSpacing: 1.5)),
           ]),
           const Spacer(),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -854,7 +783,9 @@ class _CurrencyCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final usdValue = currency.balance * (_usdRates[currency.code] ?? 1.0);
+    final ratesAsync = ref.watch(exchangeRatesProvider);
+    final rates = ratesAsync.valueOrNull?.rates ?? fallbackRates;
+    final usdValue = _toUsd(rates, currency.code, currency.balance);
     final pct = totalUSD > 0 ? (usdValue / totalUSD * 100) : 0.0;
     // Use DB-persisted colorIndex; fall back to position index for legacy/offline
     final colorIdx = (currency.colorIndex ?? index) % _portfolioColors.length;

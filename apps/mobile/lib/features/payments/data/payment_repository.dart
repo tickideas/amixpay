@@ -38,6 +38,15 @@ class PaymentRepository {
   Future<void> acceptRequest(String id) async => _dio.post('/payment-requests/$id/accept');
   Future<void> declineRequest(String id) async => _dio.post('/payment-requests/$id/decline');
   Future<void> cancelRequest(String id) async => _dio.post('/payment-requests/$id/cancel');
+
+  /// Search for AmixPay users by username, email, or phone
+  Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    final res = await _dio.get('/users/lookup', queryParameters: {'q': query});
+    final data = res.data['data'];
+    if (data is List) return data.cast<Map<String, dynamic>>();
+    if (data is Map) return [data.cast<String, dynamic>()];
+    return [];
+  }
 }
 
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) => PaymentRepository(ApiClient.instance));

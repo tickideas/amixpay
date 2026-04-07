@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/network/api_client.dart';
 
 // ---------------------------------------------------------------------------
 // Transfer status model
@@ -92,20 +93,39 @@ class _TransferInfo {
 final _transferStatusProvider =
     FutureProvider.autoDispose.family<_TransferInfo, String>(
   (ref, transferId) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    // Simulate different statuses based on time
-    final stage = TransferStage.processing;
-    return _TransferInfo(
-      id: transferId,
-      currentStage: stage,
-      amount: '500.00',
-      currency: 'USD',
-      recipientAmount: '394.60',
-      recipientCurrency: 'GBP',
-      recipientName: 'John Smith',
-      bankName: 'Barclays Bank',
-      createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
-    );
+    try {
+      final dio = ref.read(Provider((r) => ApiClient.instance));
+      final res = await dio.get('/transfers/$transferId');
+      final d = res.data['data'] as Map<String, dynamic>;
+      final status = d['status'] as String? ?? 'processing';
+      final stage = status == 'completed' || status == 'received' ? TransferStage.received
+          : status == 'sent' ? TransferStage.sent
+          : TransferStage.processing;
+      return _TransferInfo(
+        id: transferId,
+        currentStage: stage,
+        amount: d['amount']?.toString() ?? '0.00',
+        currency: d['source_currency'] as String? ?? 'USD',
+        recipientAmount: d['recipient_amount']?.toString() ?? d['amount']?.toString() ?? '0.00',
+        recipientCurrency: d['target_currency'] as String? ?? 'USD',
+        recipientName: d['recipient_name'] as String? ?? 'Recipient',
+        bankName: d['bank_name'] as String? ?? '',
+        createdAt: DateTime.tryParse(d['created_at'] as String? ?? '') ?? DateTime.now(),
+      );
+    } catch (_) {
+      // Fallback: show transfer ID as reference while data loads
+      return _TransferInfo(
+        id: transferId,
+        currentStage: TransferStage.processing,
+        amount: '—',
+        currency: '',
+        recipientAmount: '—',
+        recipientCurrency: '',
+        recipientName: 'Loading...',
+        bankName: '',
+        createdAt: DateTime.now(),
+      );
+    }
   },
 );
 

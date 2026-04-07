@@ -1,44 +1,66 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import '../../../core/theme/app_theme.dart';
+import '../data/notifications_repository.dart';
 
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
-  @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
-}
-
-class _NotificationsScreenState extends State<NotificationsScreen> {
-  final List<_Notification> _items = [
-    _Notification(id: '1', type: 'payment', title: 'Payment Received', body: 'Bob sent you \$50.00', time: '2 min ago', read: false),
-    _Notification(id: '2', type: 'security', title: 'New Login Detected', body: 'New login from Chrome on Windows', time: '1 hr ago', read: false),
-    _Notification(id: '3', type: 'payment', title: 'Payment Sent', body: 'You sent \$25.00 to Alice', time: '3 hrs ago', read: true),
-    _Notification(id: '4', type: 'transfer', title: 'Transfer Update', body: 'Your international transfer is being processed', time: 'Yesterday', read: true),
-    _Notification(id: '5', type: 'kyc', title: 'KYC Approved', body: 'Your identity has been verified. Level 2 unlocked!', time: 'Yesterday', read: true),
-    _Notification(id: '6', type: 'payment', title: 'Payment Request', body: 'Charlie is requesting \$30.00', time: '2 days ago', read: true),
-  ];
 
   @override
-  Widget build(BuildContext context) {
-    final unread = _items.where((n) => !n.read).length;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncNotifs = ref.watch(notificationsProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
-          if (unread > 0)
-            TextButton(
-              onPressed: () => setState(() { for (final n in _items) n.read = true; }),
-              child: const Text('Mark all read', style: TextStyle(color: AppColors.primary)),
-            ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(notificationsRepositoryProvider).markAllRead();
+              ref.invalidate(notificationsProvider);
+            },
+            child: const Text('Mark all read', style: TextStyle(color: AppColors.primary)),
+          ),
         ],
       ),
-      body: _items.isEmpty
-          ? const Center(child: Text('No notifications yet', style: AppTextStyles.body))
-          : ListView.separated(
+      body: asyncNotifs.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.textSecondary),
+              const SizedBox(height: 12),
+              Text('Could not load notifications', style: TextStyle(color: AppColors.textSecondary)),
+              const SizedBox(height: 8),
+              TextButton(onPressed: () => ref.invalidate(notificationsProvider), child: const Text('Retry')),
+            ],
+          ),
+        ),
+        data: (notifications) {
+          if (notifications.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.notifications_none_rounded, size: 48, color: AppColors.textSecondary.withOpacity(0.4)),
+                  const SizedBox(height: 12),
+                  const Text('No notifications yet', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                ],
+              ),
+            );
+          }
+          return RefreshIndicator(
+            onRefresh: () async => ref.invalidate(notificationsProvider),
+            child: ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: _items.length,
+              itemCount: notifications.length,
               separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
               itemBuilder: (_, i) {
-                final n = _items[i];
+                final n = notifications[i];
+                final createdAt = DateTime.tryParse(n.createdAt);
+                final timeStr = createdAt != null ? timeago.format(createdAt) : '';
                 return Dismissible(
                   key: Key(n.id),
                   direction: DismissDirection.endToStart,
@@ -48,9 +70,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     padding: const EdgeInsets.only(right: 20),
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
-                  onDismissed: (_) => setState(() => _items.remove(n)),
+                  onDismissed: (_) {
+                    // Could add delete endpoint if available
+                  },
                   child: InkWell(
-                    onTap: () => setState(() => n.read = true),
+                    onTap: () async {
+                      if (!n.read) {
+                        await ref.read(notificationsRepositoryProvider).markRead(n.id);
+                        ref.invalidate(notificationsProvider);
+                      }
+                    },
                     child: Container(
                       color: n.read ? null : AppColors.primary.withOpacity(0.04),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -60,7 +89,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Row(children: [
                             Expanded(child: Text(n.title, style: n.read ? AppTextStyles.bodyBold : AppTextStyles.bodyBold.copyWith(color: AppColors.primary))),
-                            Text(n.time, style: AppTextStyles.caption),
+                            Text(timeStr, style: AppTextStyles.caption),
                           ]),
                           const SizedBox(height: 4),
                           Text(n.body, style: AppTextStyles.body.copyWith(color: AppColors.textSecondary), maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -75,6 +104,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 );
               },
             ),
+          );
+        },
+      ),
     );
   }
 }
@@ -98,10 +130,4 @@ class _NotifIcon extends StatelessWidget {
       child: Icon(icon, color: color, size: 20),
     );
   }
-}
-
-class _Notification {
-  final String id, type, title, body, time;
-  bool read;
-  _Notification({required this.id, required this.type, required this.title, required this.body, required this.time, required this.read});
 }

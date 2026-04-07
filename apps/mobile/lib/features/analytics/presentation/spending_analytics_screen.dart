@@ -46,8 +46,7 @@ class _SpendingAnalyticsScreenState
       }
     }
     if (transfers == 0 && received == 0 && funded == 0) {
-      // No data yet — return placeholder demo categories
-      return _demoCats;
+      return []; // No data yet
     }
     final cats = <SpendingCategory>[];
     if (transfers > 0) cats.add(SpendingCategory(name: 'Transfers Sent', emoji: '💸', amount: transfers, color: const Color(0xFF0D6B5E)));
@@ -71,11 +70,7 @@ class _SpendingAnalyticsScreenState
           .fold<double>(0, (s, t) => s + t.amount.abs());
       spots.add(FlSpot((5 - i).toDouble(), total > 0 ? total : 0));
     }
-    // If all zeros, return demo data
-    final hasData = spots.any((s) => s.y > 0);
-    if (!hasData) {
-      return [FlSpot(0, 1200), FlSpot(1, 980), FlSpot(2, 1450), FlSpot(3, 1100), FlSpot(4, 1380), FlSpot(5, 2636)];
-    }
+
     return spots;
   }
 
@@ -87,16 +82,7 @@ class _SpendingAnalyticsScreenState
     });
   }
 
-  // Demo data for empty state
-  static const _demoCats = [
-    SpendingCategory(name: 'Food & Dining',    emoji: '🍔', amount: 342.50, color: Color(0xFFEA580C)),
-    SpendingCategory(name: 'Transport',        emoji: '🚗', amount: 188.00, color: Color(0xFF7C3AED)),
-    SpendingCategory(name: 'Shopping',         emoji: '🛍️', amount: 520.00, color: Color(0xFFDB2777)),
-    SpendingCategory(name: 'Bills & Utilities',emoji: '💡', amount: 145.00, color: Color(0xFF0891B2)),
-    SpendingCategory(name: 'Entertainment',    emoji: '🎬', amount: 97.50,  color: Color(0xFF059669)),
-    SpendingCategory(name: 'Transfers',        emoji: '💸', amount: 1200.00,color: Color(0xFF0D6B5E)),
-    SpendingCategory(name: 'Other',            emoji: '📦', amount: 78.20,  color: Color(0xFF92400E)),
-  ];
+
 
   @override
   Widget build(BuildContext context) {

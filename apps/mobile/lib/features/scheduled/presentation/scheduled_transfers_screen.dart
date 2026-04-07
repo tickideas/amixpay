@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../data/scheduled_repository.dart';
 
 enum Frequency { once, daily, weekly, monthly }
+
+Frequency _parseFrequency(String f) {
+  switch (f) {
+    case 'daily': return Frequency.daily;
+    case 'weekly': return Frequency.weekly;
+    case 'monthly': return Frequency.monthly;
+    default: return Frequency.once;
+  }
+}
 
 class ScheduledTransfer {
   final String id, recipient, currency, description;
@@ -28,20 +39,36 @@ class ScheduledTransfer {
   }
 }
 
-final _demoScheduled = <ScheduledTransfer>[];
-
-class ScheduledTransfersScreen extends StatefulWidget {
+class ScheduledTransfersScreen extends ConsumerStatefulWidget {
   const ScheduledTransfersScreen({super.key});
 
   @override
-  State<ScheduledTransfersScreen> createState() => _ScheduledTransfersScreenState();
+  ConsumerState<ScheduledTransfersScreen> createState() => _ScheduledTransfersScreenState();
 }
 
-class _ScheduledTransfersScreenState extends State<ScheduledTransfersScreen> {
-  final List<ScheduledTransfer> _transfers = List.from(_demoScheduled);
-
+class _ScheduledTransfersScreenState extends ConsumerState<ScheduledTransfersScreen> {
   @override
   Widget build(BuildContext context) {
+    final asyncTransfers = ref.watch(scheduledTransfersProvider);
+    return asyncTransfers.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, _) => Scaffold(body: Center(child: Text('Failed to load: $e'))),
+      data: (models) => _buildContent(models),
+    );
+  }
+
+  Widget _buildContent(List<ScheduledTransferModel> models) {
+    // Convert API models to the local ScheduledTransfer for UI compatibility
+    final _transfers = models.map((m) => ScheduledTransfer(
+      id: m.id,
+      recipient: m.recipientName ?? m.recipientIdentifier,
+      amount: m.amount,
+      currency: m.currencyCode,
+      frequency: _parseFrequency(m.frequency),
+      nextDate: DateTime.tryParse(m.nextRunDate) ?? DateTime.now(),
+      description: m.description ?? '',
+      active: m.isActive,
+    )).toList();
     final active = _transfers.where((t) => t.active).toList();
     final inactive = _transfers.where((t) => !t.active).toList();
 
@@ -239,18 +266,14 @@ class _ScheduledTransfersScreenState extends State<ScheduledTransfersScreen> {
                     final amt = double.tryParse(amtCtrl.text) ?? 0;
                     if (amt <= 0) return;
                     Navigator.pop(ctx);
-                    setState(() {
-                      _transfers.add(ScheduledTransfer(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        recipient: recipientCtrl.text,
-                        currency: selectedCurrency,
-                        amount: amt,
-                        frequency: selectedFreq,
-                        nextDate: selectedDate,
-                        description: descCtrl.text.isEmpty ? 'Scheduled transfer' : descCtrl.text,
-                        active: true,
-                      ));
-                    });
+                    ref.read(scheduledRepositoryProvider).create(
+                      recipient: recipientCtrl.text,
+                      amount: amt,
+                      currencyCode: selectedCurrency,
+                      frequency: selectedFreq.name,
+                      nextRunDate: selectedDate.toIso8601String().split('T').first,
+                      description: descCtrl.text.isEmpty ? null : descCtrl.text,
+                    ).then((_) => ref.invalidate(scheduledTransfersProvider));
                   },
                   child: const Text('Schedule Transfer'),
                 ),
