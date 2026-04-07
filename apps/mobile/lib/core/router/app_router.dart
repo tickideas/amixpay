@@ -128,7 +128,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.home, builder: (_, __) => const HomeScreen()),
           GoRoute(path: AppRoutes.wallet, builder: (_, __) => const WalletScreen()),
           GoRoute(path: AppRoutes.myCards, builder: (_, __) => const MyCardsScreen()),
-          GoRoute(path: AppRoutes.qrScanner, builder: (_, __) => const QrScannerScreen()),
           GoRoute(path: AppRoutes.transactions, builder: (_, __) => const TransactionsHubScreen()),
           GoRoute(path: AppRoutes.settings, builder: (_, __) => const SettingsScreen()),
           GoRoute(path: AppRoutes.notifications, builder: (_, __) => const NotificationsScreen()),
@@ -154,6 +153,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: AppRoutes.paymentRequests, builder: (_, __) => const PaymentRequestsScreen()),
 
       // QR
+      GoRoute(path: AppRoutes.qrScanner, builder: (_, __) => const QrScannerScreen()),
       GoRoute(path: AppRoutes.myQr, builder: (_, __) => const MyQrScreen()),
       GoRoute(path: AppRoutes.qrPayConfirm, builder: (c, s) => QrPaymentConfirmScreen(payload: s.extra as String)),
 

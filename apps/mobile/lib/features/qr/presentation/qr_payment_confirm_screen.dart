@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../payments/data/payment_repository.dart';
 
 // ---------------------------------------------------------------------------
 // QR Payload Parser
@@ -91,11 +92,26 @@ class _QrPaymentConfirmScreenState
       _errorMsg = null;
     });
 
-    // Simulate network call
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (!mounted) return;
-    setState(() => _status = _PaymentStatus.success);
+    try {
+      final repo = ref.read(paymentRepositoryProvider);
+      await repo.send(
+        recipient: _qr.username,
+        amount: amount,
+        currencyCode: 'USD',
+        note: _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
+      );
+      if (!mounted) return;
+      setState(() => _status = _PaymentStatus.success);
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString();
+      setState(() {
+        _status = _PaymentStatus.error;
+        _errorMsg = msg.contains('message')
+            ? msg
+            : 'Payment failed. Please try again.';
+      });
+    }
   }
 
   @override
