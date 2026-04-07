@@ -799,6 +799,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ('🇺🇸', 'USD', '🇨🇦', 'CAD'),
   ];
 
+  static double _computeRate(Map<String, double> rateMap, String from, String to) {
+    final fromRate = rateMap[from] ?? 1.0;
+    final toRate = rateMap[to] ?? 1.0;
+    return toRate / fromRate;
+  }
+
   Widget _buildRateWidget() {
     final ratesAsync = ref.watch(exchangeRatesProvider);
     final rates = ratesAsync.valueOrNull;
@@ -848,8 +854,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               itemCount: _ratePairs.length,
               separatorBuilder: (_, __) => const SizedBox(width: 10),
               itemBuilder: (_, i) {
-                final r = _rateRoutes[i];
-                final rate = r.$5;
+                final p = _ratePairs[i];
+                final rate = _computeRate(rateMap, p.$2, p.$4);
+                final r = (p.$1, p.$2, p.$3, p.$4, rate);
                 final rateStr = rate >= 100
                     ? rate.toStringAsFixed(0)
                     : rate >= 1
