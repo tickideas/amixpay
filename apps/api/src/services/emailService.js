@@ -1,9 +1,36 @@
 const config = require('../config');
 
 /**
- * Send an email. Tries SendGrid first, falls back to SMTP (nodemailer), falls back to console log.
+ * Send an email. Tries useSend first, then SendGrid, SMTP, and finally console log.
  */
 async function sendEmail({ toEmail, subject, html, text }) {
+  // --- useSend API ---
+  if (config.email.usesendApiKey && config.email.usesendUrl) {
+    try {
+      const res = await fetch(`${config.email.usesendUrl}/api/v1/emails`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.email.usesendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: toEmail,
+          from: config.email.from,
+          subject,
+          html,
+          text: text || subject,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`${res.status} ${err}`);
+      }
+      return;
+    } catch (err) {
+      console.error('[Email/useSend] Failed:', err.message);
+    }
+  }
+
   // --- SendGrid ---
   if (config.email.sendgridKey && config.email.sendgridKey.startsWith('SG.')) {
     try {

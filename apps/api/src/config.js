@@ -37,8 +37,10 @@ module.exports = {
   },
 
   email: {
+    usesendUrl: process.env.USESEND_URL || '',
+    usesendApiKey: process.env.USESEND_API_KEY || '',
     sendgridKey: process.env.SENDGRID_API_KEY || '',
-    from: process.env.SENDGRID_FROM_EMAIL || 'noreply@amixpay.com',
+    from: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || 'noreply@amixpay.com',
     smtpHost: process.env.SMTP_HOST || '',
     smtpPort: parseInt(process.env.SMTP_PORT, 10) || 587,
     smtpUser: process.env.SMTP_USER || '',
