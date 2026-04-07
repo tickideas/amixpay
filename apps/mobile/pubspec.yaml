@@ -1,7 +1,7 @@
 name: amixpay_app
 description: AmixPay — Global Digital Wallet & Money Transfer
 publish_to: 'none'
-version: 1.7.1+8
+version: 1.7.2+9
 
 environment:
   sdk: ^3.11.1

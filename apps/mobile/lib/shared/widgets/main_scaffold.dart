@@ -28,7 +28,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   static const _routes = [
     AppRoutes.home,
     AppRoutes.wallet,
-    AppRoutes.qrScanner,
+    AppRoutes.qrHub,
     AppRoutes.transactions,
     AppRoutes.settings,
   ];

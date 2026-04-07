@@ -1,4 +1,5 @@
 
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/presentation/splash_screen.dart';
@@ -70,6 +71,7 @@ class AppRoutes {
   static const sendSuccess = '/payments/success';
   static const requestMoney = '/payments/request';
   static const paymentRequests = '/payments/requests';
+  static const qrHub = '/qr';
   static const qrScanner = '/qr/scan';
   static const myQr = '/qr/my-code';
   static const qrPayConfirm = '/qr/confirm';
@@ -128,6 +130,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.home, builder: (_, __) => const HomeScreen()),
           GoRoute(path: AppRoutes.wallet, builder: (_, __) => const WalletScreen()),
           GoRoute(path: AppRoutes.myCards, builder: (_, __) => const MyCardsScreen()),
+          GoRoute(path: AppRoutes.qrHub, builder: (_, __) => const SizedBox.shrink()),
           GoRoute(path: AppRoutes.transactions, builder: (_, __) => const TransactionsHubScreen()),
           GoRoute(path: AppRoutes.settings, builder: (_, __) => const SettingsScreen()),
           GoRoute(path: AppRoutes.notifications, builder: (_, __) => const NotificationsScreen()),
